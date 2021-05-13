@@ -1,0 +1,66 @@
+apiVersion: argoproj.io/v1alpha1
+kind: Workflow
+metadata:
+  generateName: cancer-classifier-
+  annotations: {pipelines.kubeflow.org/kfp_sdk_version: 1.4.0, pipelines.kubeflow.org/pipeline_compilation_time: '2021-05-12T21:57:53.301845',
+    pipelines.kubeflow.org/pipeline_spec: '{"description": "test classifier pipeline
+      with breast cancer dataset", "name": "cancer classifier"}'}
+  labels: {pipelines.kubeflow.org/kfp_sdk_version: 1.4.0}
+spec:
+  entrypoint: cancer-classifier
+  templates:
+  - name: cancer-classifier
+    dag:
+      tasks:
+      - {name: fetch-data, template: fetch-data}
+  - name: fetch-data
+    container:
+      args: [--x, /tmp/outputs/x/data, --y, /tmp/outputs/y/data]
+      command:
+      - sh
+      - -ec
+      - |
+        program_path=$(mktemp)
+        printf "%s" "$0" > "$program_path"
+        python3 -u "$program_path" "$@"
+      - |
+        def _make_parent_dirs_and_return_path(file_path: str):
+            import os
+            os.makedirs(os.path.dirname(file_path), exist_ok=True)
+            return file_path
+
+        def fetch_data(x_path, y_path):
+            x, y = datasets.load_breast_cancer(return_X_y=True, as_frame=True)
+            x.to_parquet(x_path)
+            y.to_frame().to_parquet(y_path)
+
+        import argparse
+        _parser = argparse.ArgumentParser(prog='Fetch data', description='')
+        _parser.add_argument("--x", dest="x_path", type=_make_parent_dirs_and_return_path, required=True, default=argparse.SUPPRESS)
+        _parser.add_argument("--y", dest="y_path", type=_make_parent_dirs_and_return_path, required=True, default=argparse.SUPPRESS)
+        _parsed_args = vars(_parser.parse_args())
+
+        _outputs = fetch_data(**_parsed_args)
+      image: python:3.7
+    outputs:
+      artifacts:
+      - {name: fetch-data-x, path: /tmp/outputs/x/data}
+      - {name: fetch-data-y, path: /tmp/outputs/y/data}
+    metadata:
+      annotations: {pipelines.kubeflow.org/component_spec: '{"implementation": {"container":
+          {"args": ["--x", {"outputPath": "x"}, "--y", {"outputPath": "y"}], "command":
+          ["sh", "-ec", "program_path=$(mktemp)\nprintf \"%s\" \"$0\" > \"$program_path\"\npython3
+          -u \"$program_path\" \"$@\"\n", "def _make_parent_dirs_and_return_path(file_path:
+          str):\n    import os\n    os.makedirs(os.path.dirname(file_path), exist_ok=True)\n    return
+          file_path\n\ndef fetch_data(x_path, y_path):\n    x, y = datasets.load_breast_cancer(return_X_y=True,
+          as_frame=True)\n    x.to_parquet(x_path)\n    y.to_frame().to_parquet(y_path)\n\nimport
+          argparse\n_parser = argparse.ArgumentParser(prog=''Fetch data'', description='''')\n_parser.add_argument(\"--x\",
+          dest=\"x_path\", type=_make_parent_dirs_and_return_path, required=True,
+          default=argparse.SUPPRESS)\n_parser.add_argument(\"--y\", dest=\"y_path\",
+          type=_make_parent_dirs_and_return_path, required=True, default=argparse.SUPPRESS)\n_parsed_args
+          = vars(_parser.parse_args())\n\n_outputs = fetch_data(**_parsed_args)\n"],
+          "image": "python:3.7"}}, "name": "Fetch data", "outputs": [{"name": "x",
+          "type": "String"}, {"name": "y", "type": "String"}]}', pipelines.kubeflow.org/component_ref: '{}'}
+  arguments:
+    parameters: []
+  serviceAccountName: pipeline-runner

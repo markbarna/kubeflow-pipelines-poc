@@ -9,6 +9,8 @@ python = "^3.8"
 pandas = "^1.2.4"
 scikit-learn = "^0.24.2"
 kfp = "^1.4.0"
+pytest = "^6.2.4"
+pyarrow = "^4.0.0"
 
 [tool.poetry.dev-dependencies]
 
