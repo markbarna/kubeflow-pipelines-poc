@@ -5,7 +5,8 @@ from components.fetch_data import fetch_data
 fetch_data_op = components.create_component_from_func(
     fetch_data, packages_to_install=[
         'scikit-learn==0.24.2',
-        'pandas==1.2.4'
+        'pandas==1.2.4',
+        'pyarrow==4.0.0'
     ]
 )
 
