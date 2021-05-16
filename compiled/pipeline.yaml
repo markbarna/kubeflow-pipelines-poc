@@ -2,7 +2,7 @@ apiVersion: argoproj.io/v1alpha1
 kind: Workflow
 metadata:
   generateName: cancer-classifier-
-  annotations: {pipelines.kubeflow.org/kfp_sdk_version: 1.4.0, pipelines.kubeflow.org/pipeline_compilation_time: '2021-05-15T21:07:11.411809',
+  annotations: {pipelines.kubeflow.org/kfp_sdk_version: 1.4.0, pipelines.kubeflow.org/pipeline_compilation_time: '2021-05-15T21:17:26.656252',
     pipelines.kubeflow.org/pipeline_spec: '{"description": "test classifier pipeline
       with breast cancer dataset", "name": "cancer classifier"}'}
   labels: {pipelines.kubeflow.org/kfp_sdk_version: 1.4.0}
@@ -20,9 +20,9 @@ spec:
       - sh
       - -c
       - (PIP_DISABLE_PIP_VERSION_CHECK=1 python3 -m pip install --quiet --no-warn-script-location
-        'scikit-learn==0.24.2' 'pandas==1.2.4' || PIP_DISABLE_PIP_VERSION_CHECK=1
+        'scikit-learn==0.24.2' 'pandas==1.2.4' 'pyarrow==4.0.0' || PIP_DISABLE_PIP_VERSION_CHECK=1
         python3 -m pip install --quiet --no-warn-script-location 'scikit-learn==0.24.2'
-        'pandas==1.2.4' --user) && "$0" "$@"
+        'pandas==1.2.4' 'pyarrow==4.0.0' --user) && "$0" "$@"
       - sh
       - -ec
       - |
@@ -58,11 +58,11 @@ spec:
       annotations: {pipelines.kubeflow.org/component_spec: '{"implementation": {"container":
           {"args": ["--x", {"outputPath": "x"}, "--y", {"outputPath": "y"}], "command":
           ["sh", "-c", "(PIP_DISABLE_PIP_VERSION_CHECK=1 python3 -m pip install --quiet
-          --no-warn-script-location ''scikit-learn==0.24.2'' ''pandas==1.2.4'' ||
-          PIP_DISABLE_PIP_VERSION_CHECK=1 python3 -m pip install --quiet --no-warn-script-location
-          ''scikit-learn==0.24.2'' ''pandas==1.2.4'' --user) && \"$0\" \"$@\"", "sh",
-          "-ec", "program_path=$(mktemp)\nprintf \"%s\" \"$0\" > \"$program_path\"\npython3
-          -u \"$program_path\" \"$@\"\n", "def _make_parent_dirs_and_return_path(file_path:
+          --no-warn-script-location ''scikit-learn==0.24.2'' ''pandas==1.2.4'' ''pyarrow==4.0.0''
+          || PIP_DISABLE_PIP_VERSION_CHECK=1 python3 -m pip install --quiet --no-warn-script-location
+          ''scikit-learn==0.24.2'' ''pandas==1.2.4'' ''pyarrow==4.0.0'' --user) &&
+          \"$0\" \"$@\"", "sh", "-ec", "program_path=$(mktemp)\nprintf \"%s\" \"$0\"
+          > \"$program_path\"\npython3 -u \"$program_path\" \"$@\"\n", "def _make_parent_dirs_and_return_path(file_path:
           str):\n    import os\n    os.makedirs(os.path.dirname(file_path), exist_ok=True)\n    return
           file_path\n\ndef fetch_data(x_path, y_path):\n    from sklearn import datasets\n\n    x,
           y = datasets.load_breast_cancer(return_X_y=True, as_frame=True)\n    x.to_parquet(x_path)\n    y.to_frame().to_parquet(y_path)\n\nimport
