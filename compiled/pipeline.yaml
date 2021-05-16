@@ -2,7 +2,7 @@ apiVersion: argoproj.io/v1alpha1
 kind: Workflow
 metadata:
   generateName: cancer-classifier-
-  annotations: {pipelines.kubeflow.org/kfp_sdk_version: 1.4.0, pipelines.kubeflow.org/pipeline_compilation_time: '2021-05-12T21:57:53.301845',
+  annotations: {pipelines.kubeflow.org/kfp_sdk_version: 1.4.0, pipelines.kubeflow.org/pipeline_compilation_time: '2021-05-15T21:07:11.411809',
     pipelines.kubeflow.org/pipeline_spec: '{"description": "test classifier pipeline
       with breast cancer dataset", "name": "cancer classifier"}'}
   labels: {pipelines.kubeflow.org/kfp_sdk_version: 1.4.0}
@@ -18,6 +18,12 @@ spec:
       args: [--x, /tmp/outputs/x/data, --y, /tmp/outputs/y/data]
       command:
       - sh
+      - -c
+      - (PIP_DISABLE_PIP_VERSION_CHECK=1 python3 -m pip install --quiet --no-warn-script-location
+        'scikit-learn==0.24.2' 'pandas==1.2.4' || PIP_DISABLE_PIP_VERSION_CHECK=1
+        python3 -m pip install --quiet --no-warn-script-location 'scikit-learn==0.24.2'
+        'pandas==1.2.4' --user) && "$0" "$@"
+      - sh
       - -ec
       - |
         program_path=$(mktemp)
@@ -30,6 +36,8 @@ spec:
             return file_path
 
         def fetch_data(x_path, y_path):
+            from sklearn import datasets
+
             x, y = datasets.load_breast_cancer(return_X_y=True, as_frame=True)
             x.to_parquet(x_path)
             y.to_frame().to_parquet(y_path)
@@ -49,11 +57,15 @@ spec:
     metadata:
       annotations: {pipelines.kubeflow.org/component_spec: '{"implementation": {"container":
           {"args": ["--x", {"outputPath": "x"}, "--y", {"outputPath": "y"}], "command":
-          ["sh", "-ec", "program_path=$(mktemp)\nprintf \"%s\" \"$0\" > \"$program_path\"\npython3
+          ["sh", "-c", "(PIP_DISABLE_PIP_VERSION_CHECK=1 python3 -m pip install --quiet
+          --no-warn-script-location ''scikit-learn==0.24.2'' ''pandas==1.2.4'' ||
+          PIP_DISABLE_PIP_VERSION_CHECK=1 python3 -m pip install --quiet --no-warn-script-location
+          ''scikit-learn==0.24.2'' ''pandas==1.2.4'' --user) && \"$0\" \"$@\"", "sh",
+          "-ec", "program_path=$(mktemp)\nprintf \"%s\" \"$0\" > \"$program_path\"\npython3
           -u \"$program_path\" \"$@\"\n", "def _make_parent_dirs_and_return_path(file_path:
           str):\n    import os\n    os.makedirs(os.path.dirname(file_path), exist_ok=True)\n    return
-          file_path\n\ndef fetch_data(x_path, y_path):\n    x, y = datasets.load_breast_cancer(return_X_y=True,
-          as_frame=True)\n    x.to_parquet(x_path)\n    y.to_frame().to_parquet(y_path)\n\nimport
+          file_path\n\ndef fetch_data(x_path, y_path):\n    from sklearn import datasets\n\n    x,
+          y = datasets.load_breast_cancer(return_X_y=True, as_frame=True)\n    x.to_parquet(x_path)\n    y.to_frame().to_parquet(y_path)\n\nimport
           argparse\n_parser = argparse.ArgumentParser(prog=''Fetch data'', description='''')\n_parser.add_argument(\"--x\",
           dest=\"x_path\", type=_make_parent_dirs_and_return_path, required=True,
           default=argparse.SUPPRESS)\n_parser.add_argument(\"--y\", dest=\"y_path\",

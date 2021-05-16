@@ -2,7 +2,12 @@ from kfp import components, dsl, compiler
 
 from components.fetch_data import fetch_data
 
-fetch_data_op = components.create_component_from_func(fetch_data)
+fetch_data_op = components.create_component_from_func(
+    fetch_data, packages_to_install=[
+        'scikit-learn==0.24.2',
+        'pandas==1.2.4'
+    ]
+)
 
 
 @dsl.pipeline(name='cancer classifier', description='test classifier pipeline with breast cancer dataset')
