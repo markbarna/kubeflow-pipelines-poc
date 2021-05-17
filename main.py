@@ -22,4 +22,6 @@ def pipeline(test_size: float = 0.2):
 
 
 if __name__ == '__main__':
+    # TODO: switch to using client connection
     compiler.Compiler().compile(pipeline, 'compiled/pipeline.yaml')
+    # TODO: compile on release job in github
