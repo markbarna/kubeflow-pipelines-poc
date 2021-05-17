@@ -2,17 +2,30 @@ apiVersion: argoproj.io/v1alpha1
 kind: Workflow
 metadata:
   generateName: cancer-classifier-
-  annotations: {pipelines.kubeflow.org/kfp_sdk_version: 1.4.0, pipelines.kubeflow.org/pipeline_compilation_time: '2021-05-16T13:15:22.956582',
+  annotations: {pipelines.kubeflow.org/kfp_sdk_version: 1.4.0, pipelines.kubeflow.org/pipeline_compilation_time: '2021-05-17T08:00:13.069926',
     pipelines.kubeflow.org/pipeline_spec: '{"description": "test classifier pipeline
-      with breast cancer dataset", "name": "cancer classifier"}'}
+      with breast cancer dataset", "inputs": [{"default": "0.2", "name": "test_size",
+      "optional": true, "type": "Float"}], "name": "cancer classifier"}'}
   labels: {pipelines.kubeflow.org/kfp_sdk_version: 1.4.0}
 spec:
   entrypoint: cancer-classifier
   templates:
   - name: cancer-classifier
+    inputs:
+      parameters:
+      - {name: test_size}
     dag:
       tasks:
       - {name: fetch-data, template: fetch-data}
+      - name: split-data
+        template: split-data
+        dependencies: [fetch-data]
+        arguments:
+          parameters:
+          - {name: test_size, value: '{{inputs.parameters.test_size}}'}
+          artifacts:
+          - {name: fetch-data-x, from: '{{tasks.fetch-data.outputs.artifacts.fetch-data-x}}'}
+          - {name: fetch-data-y, from: '{{tasks.fetch-data.outputs.artifacts.fetch-data-y}}'}
   - name: fetch-data
     container:
       args: [--x, /tmp/outputs/x/data, --y, /tmp/outputs/y/data]
@@ -30,6 +43,7 @@ spec:
             return file_path
 
         def fetch_data(x_path, y_path):
+            # download data locally
             from sklearn import datasets
 
             x, y = datasets.load_breast_cancer(return_X_y=True, as_frame=True)
@@ -54,8 +68,9 @@ spec:
           ["sh", "-ec", "program_path=$(mktemp)\nprintf \"%s\" \"$0\" > \"$program_path\"\npython3
           -u \"$program_path\" \"$@\"\n", "def _make_parent_dirs_and_return_path(file_path:
           str):\n    import os\n    os.makedirs(os.path.dirname(file_path), exist_ok=True)\n    return
-          file_path\n\ndef fetch_data(x_path, y_path):\n    from sklearn import datasets\n\n    x,
-          y = datasets.load_breast_cancer(return_X_y=True, as_frame=True)\n    x.to_parquet(x_path)\n    y.to_frame().to_parquet(y_path)\n\nimport
+          file_path\n\ndef fetch_data(x_path, y_path):\n    # download data locally\n    from
+          sklearn import datasets\n\n    x, y = datasets.load_breast_cancer(return_X_y=True,
+          as_frame=True)\n    x.to_parquet(x_path)\n    y.to_frame().to_parquet(y_path)\n\nimport
           argparse\n_parser = argparse.ArgumentParser(prog=''Fetch data'', description='''')\n_parser.add_argument(\"--x\",
           dest=\"x_path\", type=_make_parent_dirs_and_return_path, required=True,
           default=argparse.SUPPRESS)\n_parser.add_argument(\"--y\", dest=\"y_path\",
@@ -64,6 +79,105 @@ spec:
           "image": "dabarnyarddawg/kf-pipelines-base-images:latest"}}, "name": "Fetch
           data", "outputs": [{"name": "x", "type": "String"}, {"name": "y", "type":
           "String"}]}', pipelines.kubeflow.org/component_ref: '{}'}
+  - name: split-data
+    container:
+      args: [--x, /tmp/inputs/x/data, --y, /tmp/inputs/y/data, --test-size, '{{inputs.parameters.test_size}}',
+        --x-train, /tmp/outputs/x_train/data, --y-train, /tmp/outputs/y_train/data,
+        --x-test, /tmp/outputs/x_test/data, --y-test, /tmp/outputs/y_test/data]
+      command:
+      - sh
+      - -ec
+      - |
+        program_path=$(mktemp)
+        printf "%s" "$0" > "$program_path"
+        python3 -u "$program_path" "$@"
+      - |
+        def _make_parent_dirs_and_return_path(file_path: str):
+            import os
+            os.makedirs(os.path.dirname(file_path), exist_ok=True)
+            return file_path
+
+        def split_data(
+                x_path,
+                y_path,
+                x_train_path,
+                y_train_path,
+                x_test_path,
+                y_test_path,
+                test_size = 0.2
+        ):
+            # split into training and test sets
+            import pandas as pd
+            from sklearn.model_selection import train_test_split
+
+            x = pd.read_parquet(x_path)
+            y = pd.read_parquet(y_path)
+
+            x_train, x_test, y_train, y_test = train_test_split(x, y, test_size=test_size, random_state=1)
+
+            x_train.to_parquet(x_train_path)
+            x_test.to_parquet(x_test_path)
+            y_train.to_parquet(y_train_path)
+            y_test.to_parquet(y_test_path)
+
+        import argparse
+        _parser = argparse.ArgumentParser(prog='Split data', description='')
+        _parser.add_argument("--x", dest="x_path", type=str, required=True, default=argparse.SUPPRESS)
+        _parser.add_argument("--y", dest="y_path", type=str, required=True, default=argparse.SUPPRESS)
+        _parser.add_argument("--test-size", dest="test_size", type=float, required=False, default=argparse.SUPPRESS)
+        _parser.add_argument("--x-train", dest="x_train_path", type=_make_parent_dirs_and_return_path, required=True, default=argparse.SUPPRESS)
+        _parser.add_argument("--y-train", dest="y_train_path", type=_make_parent_dirs_and_return_path, required=True, default=argparse.SUPPRESS)
+        _parser.add_argument("--x-test", dest="x_test_path", type=_make_parent_dirs_and_return_path, required=True, default=argparse.SUPPRESS)
+        _parser.add_argument("--y-test", dest="y_test_path", type=_make_parent_dirs_and_return_path, required=True, default=argparse.SUPPRESS)
+        _parsed_args = vars(_parser.parse_args())
+
+        _outputs = split_data(**_parsed_args)
+      image: dabarnyarddawg/kf-pipelines-base-images:latest
+    inputs:
+      parameters:
+      - {name: test_size}
+      artifacts:
+      - {name: fetch-data-x, path: /tmp/inputs/x/data}
+      - {name: fetch-data-y, path: /tmp/inputs/y/data}
+    outputs:
+      artifacts:
+      - {name: split-data-x_test, path: /tmp/outputs/x_test/data}
+      - {name: split-data-x_train, path: /tmp/outputs/x_train/data}
+      - {name: split-data-y_test, path: /tmp/outputs/y_test/data}
+      - {name: split-data-y_train, path: /tmp/outputs/y_train/data}
+    metadata:
+      annotations: {pipelines.kubeflow.org/component_spec: '{"implementation": {"container":
+          {"args": ["--x", {"inputPath": "x"}, "--y", {"inputPath": "y"}, {"if": {"cond":
+          {"isPresent": "test_size"}, "then": ["--test-size", {"inputValue": "test_size"}]}},
+          "--x-train", {"outputPath": "x_train"}, "--y-train", {"outputPath": "y_train"},
+          "--x-test", {"outputPath": "x_test"}, "--y-test", {"outputPath": "y_test"}],
+          "command": ["sh", "-ec", "program_path=$(mktemp)\nprintf \"%s\" \"$0\" >
+          \"$program_path\"\npython3 -u \"$program_path\" \"$@\"\n", "def _make_parent_dirs_and_return_path(file_path:
+          str):\n    import os\n    os.makedirs(os.path.dirname(file_path), exist_ok=True)\n    return
+          file_path\n\ndef split_data(\n        x_path,\n        y_path,\n        x_train_path,\n        y_train_path,\n        x_test_path,\n        y_test_path,\n        test_size
+          = 0.2\n):\n    # split into training and test sets\n    import pandas as
+          pd\n    from sklearn.model_selection import train_test_split\n\n    x =
+          pd.read_parquet(x_path)\n    y = pd.read_parquet(y_path)\n\n    x_train,
+          x_test, y_train, y_test = train_test_split(x, y, test_size=test_size, random_state=1)\n\n    x_train.to_parquet(x_train_path)\n    x_test.to_parquet(x_test_path)\n    y_train.to_parquet(y_train_path)\n    y_test.to_parquet(y_test_path)\n\nimport
+          argparse\n_parser = argparse.ArgumentParser(prog=''Split data'', description='''')\n_parser.add_argument(\"--x\",
+          dest=\"x_path\", type=str, required=True, default=argparse.SUPPRESS)\n_parser.add_argument(\"--y\",
+          dest=\"y_path\", type=str, required=True, default=argparse.SUPPRESS)\n_parser.add_argument(\"--test-size\",
+          dest=\"test_size\", type=float, required=False, default=argparse.SUPPRESS)\n_parser.add_argument(\"--x-train\",
+          dest=\"x_train_path\", type=_make_parent_dirs_and_return_path, required=True,
+          default=argparse.SUPPRESS)\n_parser.add_argument(\"--y-train\", dest=\"y_train_path\",
+          type=_make_parent_dirs_and_return_path, required=True, default=argparse.SUPPRESS)\n_parser.add_argument(\"--x-test\",
+          dest=\"x_test_path\", type=_make_parent_dirs_and_return_path, required=True,
+          default=argparse.SUPPRESS)\n_parser.add_argument(\"--y-test\", dest=\"y_test_path\",
+          type=_make_parent_dirs_and_return_path, required=True, default=argparse.SUPPRESS)\n_parsed_args
+          = vars(_parser.parse_args())\n\n_outputs = split_data(**_parsed_args)\n"],
+          "image": "dabarnyarddawg/kf-pipelines-base-images:latest"}}, "inputs": [{"name":
+          "x", "type": "String"}, {"name": "y", "type": "String"}, {"default": "0.2",
+          "name": "test_size", "optional": true, "type": "Float"}], "name": "Split
+          data", "outputs": [{"name": "x_train", "type": "String"}, {"name": "y_train",
+          "type": "String"}, {"name": "x_test", "type": "String"}, {"name": "y_test",
+          "type": "String"}]}', pipelines.kubeflow.org/component_ref: '{}', pipelines.kubeflow.org/arguments.parameters: '{"test_size":
+          "{{inputs.parameters.test_size}}"}'}
   arguments:
-    parameters: []
+    parameters:
+    - {name: test_size, value: '0.2'}
   serviceAccountName: pipeline-runner
