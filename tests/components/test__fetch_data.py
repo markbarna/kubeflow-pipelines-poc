@@ -1,6 +1,8 @@
 from components.fetch_data import fetch_data, split_data
 import os
 
+ROOT_DIR = os.path.dirname(__file__)
+
 
 def test_fetch_data(tmp_path):
     x_path = tmp_path / 'x'
@@ -10,8 +12,7 @@ def test_fetch_data(tmp_path):
 
 
 def test_split_data(tmp_path):
-    # TODO: Fix path resolution
-    input_path = os.path.join('mock_data', 'fetch_data')
+    input_path = os.path.join(ROOT_DIR, 'mock_data', 'fetch_data')
     x_path = os.path.join(input_path, 'x')
     y_path = os.path.join(input_path, 'y')
     x_train_path = tmp_path / 'x_train'
