@@ -2,10 +2,10 @@ apiVersion: argoproj.io/v1alpha1
 kind: Workflow
 metadata:
   generateName: cancer-classifier-
-  annotations: {pipelines.kubeflow.org/kfp_sdk_version: 1.4.0, pipelines.kubeflow.org/pipeline_compilation_time: '2021-05-17T08:00:13.069926',
+  annotations: {pipelines.kubeflow.org/kfp_sdk_version: 1.4.0, pipelines.kubeflow.org/pipeline_compilation_time: '2021-05-20T20:16:41.432246',
     pipelines.kubeflow.org/pipeline_spec: '{"description": "test classifier pipeline
       with breast cancer dataset", "inputs": [{"default": "0.2", "name": "test_size",
-      "optional": true, "type": "Float"}], "name": "cancer classifier"}'}
+      "optional": true, "type": "Float"}], "name": "cancer-classifier"}'}
   labels: {pipelines.kubeflow.org/kfp_sdk_version: 1.4.0}
 spec:
   entrypoint: cancer-classifier
