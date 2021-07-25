@@ -10,5 +10,6 @@ def test_train(tmp_path):
     x_path = os.path.join(input_path, 'x_train')
     y_path = os.path.join(input_path, 'y_train')
     model_path = os.path.join(tmp_path, 'model')
-    train(x_path, y_path, model_path)
+    stats = train(x_path, y_path, model_path)
     assert 'model' in os.listdir(tmp_path)
+    assert isinstance(stats, dict)

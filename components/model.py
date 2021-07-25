@@ -14,3 +14,7 @@ def train(x_path: InputPath(str), y_path: InputPath(str), model_path: OutputPath
     joblib.dump(model, model_path)
 
     # TODO: output artifact of model stats
+    coefs = {feature: round(value, 2) for feature, value in zip(x.columns, model.coef_.flatten())}
+    coefs['intercept'] = round(model.intercept_[0], 2)
+
+    return coefs
