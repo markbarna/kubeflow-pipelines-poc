@@ -9,7 +9,7 @@ def fetch_data(x_path: OutputPath(str), y_path: OutputPath(str)):
 
     print(os.getcwd())
     print(os.listdir('.'))
-    print(os.environ)
+    print(os.getenv('PYTHONPATH'))
 
     x, y = datasets.load_breast_cancer(return_X_y=True, as_frame=True)
     x.to_parquet(x_path)
