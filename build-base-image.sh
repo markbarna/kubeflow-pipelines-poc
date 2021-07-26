@@ -1,0 +1,1 @@
+docker build -t localhost:5000/kf-pipelines-base-images:latest ./base_image

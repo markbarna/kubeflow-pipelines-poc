@@ -5,9 +5,18 @@ def fetch_data(x_path: OutputPath(str), y_path: OutputPath(str)):
     # download data locally
     from sklearn import datasets
 
+    import os
+
+    print(os.getcwd())
+    print(os.listdir('.'))
+    print(os.environ)
+
     x, y = datasets.load_breast_cancer(return_X_y=True, as_frame=True)
     x.to_parquet(x_path)
     y.to_frame().to_parquet(y_path)
+
+    from src.utils import print_hello_world
+    print_hello_world()
 
 
 def split_data(

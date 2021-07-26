@@ -1,0 +1,1 @@
+docker build -t dabarnyarddawg/kubeflow-piplines-poc:latest .

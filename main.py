@@ -4,7 +4,7 @@ from components.fetch_data import fetch_data, split_data
 from components.model import train
 from utils.git import create_version_name
 
-BASE_IMAGE = 'dabarnyarddawg/kf-pipelines-base-images:latest'
+BASE_IMAGE = 'dabarnyarddawg/kubeflow-piplines-poc:latest'
 CLIENT = 'http://127.0.0.1:8080'
 PIPELINE_NAME = 'cancer-classifier'
 EXPERIMENT_NAME = 'cancer_detection'
